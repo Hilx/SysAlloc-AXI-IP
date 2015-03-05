@@ -1,0 +1,68 @@
+Allocator Parameterization
+
+The developer needs to provide:
+
+1. Size of DDR memory to be managed              
+
+	DDR_MEM_SIZE     eg. 128MB
+
+2. Starting address of the memory to be managed  
+	
+	STARTING_ADDR    eg. 0x10000000
+
+3. Allocator base block memory size				 
+	
+	BLOCK_SIZE		  eg. 16B
+
+
+From the above information, we can generate the Buddy Tree parameters:
+
+1. Total number of base blocks (memory bits representing the allocation status)
+
+    TOTAL_MEM_BLOCKS = DDR_MEM_SIZE/BLOCK SIZE
+	
+2. The maximum tree depth (the deepest level's index, note that the top node has level index 0)
+
+	MAX_TREE_DEPTH = log2(TOTAL_MEM_BLOCKS)
+	
+3. To set the flag indicating the usage of the allocation vector or not
+	
+	if( MAX_TREE_DEPTH % 3 = 1 ) 
+		Allocation_Vector_Flag = 1; // use the allocation vector
+	else
+		Allocation_Vector_Flag = 0;
+		
+4. The maximum group depth (top group has depth 0)
+
+	MAX_GROUP_DEPTH = floor( MAX_TREE_DEPTH / 3)
+	
+5. Memory required to store the tree 
+	
+	N = Number of 4-Byte words = SUM(i=0 to i = MAX_GROUP_DEPTH) 8^i
+	
+	if( Allocation_Vector_Flag = 1 )
+		N  Number of 4-Byte words for tree = SUM(i=0 to i = MAX_GROUP_DEPTH - 1) 8^i
+		Nv Number of 4-Byte words for vector = TOTAL_MEM_BLOCKS/32
+
+6. Address Offset for Allocation Vector = 4N
+
+
+DDR / BRAM Partition
+
+1. Partition point = group depth P   // Groups in group depth P and above will be stored in BRAM
+
+2. BRAM_SIZE = SUM(i = 0 to i = P) 8^i   (4-Byte words)
+
+3. DDR_SIZE = SUM(i = P + 1 to i = MAX_GROUP_DEPTH) 8^i  (4-Byte words)
+	
+	if( Allocation_Vector_Flag = 1 )
+		DDR_SIZE = SUM(i = P + 1 to i = MAX_GROUP_DEPTH - 1) + Nv
+
+4. Address Map
+	
+	Group Address [0] to [4*BRAM_SIZE - 1] 	  --- use BRAM
+	Group Address [4*BRAM_SIZE] to [DDR_SIZE] --- use DDR
+	
+
+
+
