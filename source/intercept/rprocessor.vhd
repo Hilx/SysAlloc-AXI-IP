@@ -10,19 +10,19 @@ ENTITY rprocessor IS
   PORT (
     clk       : IN  std_logic;
     reset     : IN  std_logic;
+
     request   : IN  std_logic_vector(31 DOWNTO 0);
     req_valid : IN  std_logic;
-    result    : OUT std_logic_vector(31 DOWNTO 0) := (OTHERS => '0');
+    result    : OUT std_logic_vector(31 DOWNTO 0);
     res_valid : OUT std_logic;
-	done_free : out std_logic;
-	
+	done_free : out std_logic;	
 -------
-    start   : IN  std_logic;
-    command : IN  std_logic;
-    done    : OUT std_logic;    
-    size    : IN  std_logic_vector(31 DOWNTO 0);
-    address : IN  std_logic_vector(31 DOWNTO 0);
-    result  : OUT std_logic_vector(31 DOWNTO 0)	
+      buddy_start       : OUT std_logic;
+      buddy_cmd         : OUT std_logic;  -- 0 = alloc, 1 = free; Differ from  marking process 
+      buddy_size        : OUT std_logic_vector(31 DOWNTO 0);
+      buddy_free_addr   : OUT std_logic_vector(31 DOWNTO 0);
+      buddy_done        : IN  std_logic;
+      buddy_malloc_addr : IN  std_logic_vector(31 DOWNTO 0);
     );
 END ENTITY rprocessor;
 
@@ -55,16 +55,7 @@ component buddy IS
       end component buddy;
       
 BEGIN
-  
-  allocator : buddy PORT MAP(
-    clk     => clk,
-    reset   => reset,
-    start   => start,
-    command => command,
-    done    => bdone,
-    size    => size_bin,
-    address => addr_free,
-    result  => bresult);
+
 
   CPROC : PROCESS(command, size_rout, size_malloc)
   BEGIN
@@ -88,7 +79,7 @@ BEGIN
 
       IF state = s_ready THEN
         result    <= (OTHERS => '0');
-        start     <= '0';
+        buddy_start     <= '0';
 		done_free <= '0';
         res_valid <= '0';
         IF req_valid = '1' THEN
@@ -149,6 +140,22 @@ BEGIN
     END IF;
     
   END PROCESS;
+  
+  
+    
+  allocator : buddy PORT MAP(
+    clk     => clk,
+    reset   => reset,
+    start   => start,
+    command => command,
+    done    => bdone,
+    size    => size_bin,
+    address => addr_free,
+    result  => bresult);
+	
+	done <= bdone;
+	size_bin <= size;
+	address <= addr_free,
 
 
 END ARCHITECTURE synthpro;

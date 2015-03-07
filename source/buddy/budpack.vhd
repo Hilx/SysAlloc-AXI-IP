@@ -4,6 +4,14 @@ USE IEEE.numeric_std.ALL;
 
 PACKAGE budpack IS
 
+	constant BLOCK_SIZE : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(16,32)); -- 16 Bytes
+	constant LOG2BLOCK_SIZE : integer range 0 to 31: = 4;
+	
+	constant DDR_BASE : std_logic_vector(31 downto 0) := x"10000000";
+	
+	constant DDR_TREE_BASE
+	constant ParAddr
+
   -- total number of memory blocks managed by the allocator
   CONSTANT TOTAL_MEM_BLOCKS : std_logic_vector(31 DOWNTO 0) := std_logic_vector(to_unsigned(512, 32));
   -- log2(total number of memory blocks)
