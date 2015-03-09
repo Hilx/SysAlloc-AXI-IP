@@ -124,6 +124,7 @@ architecture arch_imp of Allocator_v1_0_S00_AXI is
 	signal reg_data_out	:std_logic_vector(C_S_AXI_DATA_WIDTH-1 downto 0);
 	signal byte_index	: integer;
 	
+	signal req_valid_i : std_logic;
 
 begin
 	-- I/O Connections assignments
@@ -221,34 +222,56 @@ begin
 
 	begin
 	  if rising_edge(S_AXI_ACLK) then
-	    req_valid <= '0'; 
+	    req_valid_i <= '0'; 
 	    if S_AXI_ARESETN = '0' then
 	      slv_reg3 <= (others => '0');
 	      slv_reg4 <= (others => '0');
 	    else
 	      loc_addr := axi_awaddr(ADDR_LSB + OPT_MEM_ADDR_BITS downto ADDR_LSB);
 	      if (slv_reg_wren = '1') then
-	        if loc_addr = b"011" then   	          
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	        if loc_addr = b"011" then   
+		
+	       --     for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	       --       if ( S_AXI_WSTRB(byte_index) = '1' ) then
 	                -- Respective byte enables are asserted as per write strobes                   
 	                -- slave registor 3
-	                slv_reg3(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	                req_valid <= '1';
+	       --         slv_reg3(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+			--		request(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+	                
+			--		if req_valid_i = '1' then 
+					
+			--		end
+
+					if req_valid_i = '1' then 
+						req_valid_i <= '0';
+					else
+						slv_reg3 <= S_AXI_WDATA;
+						request <= S_AXI_WDATA;	
+						req_valid_i <= '1';
+					end if;
+					
 					command <= '1';
-	              end if;
-	            end loop;
+	        --      end if;
+	        --    end loop;
             end if;
-	        if loc_addr = b"100" then   	          
-	            for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
-	              if ( S_AXI_WSTRB(byte_index) = '1' ) then
+	        if loc_addr = b"100" then   
+							
+	        --    for byte_index in 0 to (C_S_AXI_DATA_WIDTH/8-1) loop
+	        --      if ( S_AXI_WSTRB(byte_index) = '1' ) then
 	                -- Respective byte enables are asserted as per write strobes                   
-	                -- slave registor 3
-	                slv_reg4(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
-	                req_valid <= '1';
+	                -- slave registor 4
+	        --        slv_reg4(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+			--		request(byte_index*8+7 downto byte_index*8) <= S_AXI_WDATA(byte_index*8+7 downto byte_index*8);
+					if req_valid_i = '1' then 
+						req_valid_i <= '0';
+					else
+						slv_reg4 <= S_AXI_WDATA;
+						request <= S_AXI_WDATA;	
+						req_valid_i <= '1';
+					end if;
 					command <= '0';
-	              end if;
-	            end loop;
+	        --      end if;
+	        --    end loop;
             end if;			
 	      end if;
 	    end if;
@@ -401,8 +424,8 @@ begin
 
 
 	-- Add user logic here
-    
-    request <= slv_reg3;
+    req_valid <= req_valid_i;
+ 
 
 	-- User logic ends
 

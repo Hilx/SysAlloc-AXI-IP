@@ -109,9 +109,9 @@ BEGIN
         horiz_var := usgn(address) SRL to_integer(log2top_node_size);
         
         --        -- to_integer(log2top_node_size - 1)
-        nodesel_inter0 := usgn(address) - (usgn(address) srl to_integer(log2top_node_size));
-        
-        nodesel <= resize(nodesel_inter0 SRL to_integer(log2top_node_size - 3), nodesel'length);
+        nodesel_inter0 := (usgn(address) srl to_integer(log2top_node_size));
+        nodesel_inter1 := usgn(address) - (nodesel_inter0 sll to_integer(log2top_node_size));
+        nodesel <= resize(nodesel_inter1 SRL to_integer(log2top_node_size - 3), nodesel'length);
         
         IF to_integer(top_node_size) = 2 THEN
           nodesel   <= resize(usgn(address(1 DOWNTO 1)), nodesel'length);

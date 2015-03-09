@@ -1,8 +1,8 @@
 LIBRARY IEEE;
 USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
-use work.all;
-use work.budpack.all;
+USE work.ALL;
+USE work.budpack.ALL;
 
 ENTITY intercept IS
   PORT (
@@ -18,7 +18,7 @@ ENTITY intercept IS
     done_free           : OUT std_logic;
     -- buddy
     buddy_start         : OUT std_logic;
-    buddy_command           : OUT std_logic;
+    buddy_command       : OUT std_logic;
     buddy_size          : OUT std_logic_vector(31 DOWNTO 0);
     buddy_free_addr     : OUT std_logic_vector(31 DOWNTO 0);
     buddy_done          : IN  std_logic;
@@ -51,7 +51,7 @@ ARCHITECTURE synth_inter OF intercept IS
 
 BEGIN
 
-  p0 : PROCESS(state, req_valid, command)
+  p0 : PROCESS(state)
   BEGIN
 
     nstate  <= idle;
@@ -60,12 +60,6 @@ BEGIN
     CASE state IS
       WHEN idle =>
         nstate <= idle;
-        IF req_valid = '1' THEN
-          nstate <= malloc;
-          IF command = '0' THEN
-            nstate <= free;
-          END IF;
-        END IF;
       WHEN malloc => nstate <= busy;
       WHEN free   => nstate <= read_wait;
       WHEN busy =>
@@ -89,17 +83,33 @@ BEGIN
     buddy_start <= '0';
     done_free   <= '0';
     res_valid   <= '0';
-    ddr_start <= '0';
+    ddr_start   <= '0';
 
     IF reset = '0' THEN                 -- active low
-      state <= idle;
+      state        <= idle;
+      buddy_size_i <= (OTHERS => '0');
     ELSE
 
-      IF state = malloc THEN
-        buddy_command    <= '1';
+
+
+      IF state = idle THEN
+        
+        IF req_valid = '1' THEN
+          state <= malloc;
+		   buddy_size_i  <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
+          IF command = '0' THEN
+            state <= free;
+          END IF;
+        END IF;
+        
+      END IF;
+	  
+	  
+	  IF state = malloc THEN
+        buddy_command <= '1';
         -- size = ceil((req+4)/bsize) = floor((req+4+bsize-1)/bsize)
-        buddy_size_i <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
-        buddy_start  <= '1';
+       -- buddy_size_i  <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
+        buddy_start   <= '1';
       END IF;
 
       IF state = busy THEN
@@ -114,7 +124,7 @@ BEGIN
               -- write to ddr
               ddr_command    <= '0';
               ddr_start      <= '1';
-              ddr_addr       <= slv(saddr);
+              ddr_addr       <= slv(saddr + usgn(DDR_BASE));
               ddr_write_data <= buddy_size_i;
             ELSE                             -- malloc failed
               state  <= done_state;
@@ -148,10 +158,10 @@ BEGIN
       IF state = read_wait THEN
         IF ddr_done = '1' THEN
           state           <= busy;
-          buddy_command       <= '0';
+          buddy_command   <= '0';
           buddy_start     <= '1';
           buddy_size_i    <= ddr_read_data;
-          buddy_free_addr <= slv((saddr SRL (LOG2BLOCK_SIZE - 2)) - usgn(DDR_BASE));
+          buddy_free_addr <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE - 2));
         END IF;
       END IF;
 

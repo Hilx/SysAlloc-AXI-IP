@@ -3,7 +3,7 @@ USE IEEE.std_logic_1164.ALL;
 USE IEEE.numeric_std.ALL;
 
 PACKAGE budpack IS
-
+	
 	constant BLOCK_SIZE : std_logic_vector(31 downto 0) := std_logic_vector(to_unsigned(16,32)); -- 16 Bytes
 	constant LOG2BLOCK_SIZE : integer range 0 to 31:= 4;
 	
