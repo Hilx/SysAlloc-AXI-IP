@@ -390,29 +390,29 @@ BEGIN
   --Modify these as desired for different address patterns.
 
   --  Write Addresses                                                               
-  PROCESS(ddr_addr)
-  BEGIN
+--  PROCESS(ddr_addr)
+--  BEGIN
 
-    axi_awaddr <= ddr_addr;
+--    axi_awaddr <= ddr_addr;
 
 
-  END PROCESS;
+--  END PROCESS;
 
   -- Read Addresses                                                                      
-  PROCESS(ddr_addr)
-  BEGIN
+--  PROCESS(ddr_addr)
+--  BEGIN
 
-    axi_araddr <= ddr_addr;
+--    axi_araddr <= ddr_addr;
 
-  END PROCESS;
+--  END PROCESS;
 
   -- Write data                                                                          
-  PROCESS(write_data)
-  BEGIN
+--  PROCESS(write_data)
+--  BEGIN
 
-    axi_wdata <= write_data;
+--    axi_wdata <= write_data;
 
-  END PROCESS;
+--  END PROCESS;
 
 
   --implement master command interface state machine                                           
@@ -430,7 +430,7 @@ BEGIN
         error              <= '0';
       ELSE
 
-
+		done_bit_i <= '0';
         -- state transition                                                                         
         CASE (mst_exec_state) IS
           
@@ -443,19 +443,18 @@ BEGIN
             read_issued  <= '0';
 
             mst_exec_state <= IDLE;
-			
-			if done_bit_i = '1' then 
-				done_bit_i <= '0';
-			end if;			
 
             IF start = '1' THEN
 
               IF command = '0' THEN     -- write 
                 mst_exec_state <= INIT_WRITE;
+				axi_awaddr <= ddr_addr;
+				axi_wdata <= write_data;
               END IF;
 
               IF command = '1' THEN     -- read 
                 mst_exec_state <= INIT_READ;
+				axi_araddr <= ddr_addr;
               END IF;
               
             END IF;
@@ -488,7 +487,7 @@ BEGIN
             -- issued until last_read signal is asserted.                                           
             -- read controller                                                                      
             IF (reads_done = '1') THEN
-              read_data      <= M_AXI_RDATA;
+            -- 
               mst_exec_state <= DONE;
 
 
@@ -533,6 +532,7 @@ BEGIN
           writes_done <= '1';
 
         END IF;
+		
       END IF;
     END IF;
   END PROCESS;
@@ -548,6 +548,10 @@ BEGIN
           --The reads_done should be associated with a read ready response                          
           reads_done <= '1';
         END IF;
+		
+		if (M_AXI_RVALID = '1') then 
+			read_data      <= M_AXI_RDATA;
+		end if;
       END IF;
     END IF;
   END PROCESS;

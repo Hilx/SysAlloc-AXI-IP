@@ -157,6 +157,7 @@ BEGIN
         offset := (OTHERS => '0');
 		
 		read_start <= '1';
+		--ram_addr <= group_addr;
 
       END IF;  -- finished case of s0
 	  
@@ -204,7 +205,7 @@ BEGIN
           
           mtree(14 + to_integer(usgn(shift))) <= flag_alloc;
           size_left_var                       := size_left;
-          
+          offset := slv(resize(usgn(shift),offset'length) srl 1);
         ELSIF to_integer(usgn(top_node_size)) = 4 THEN  -- topsize = 4
 
           step := slv(resize(usgn(size_left), step'length));  -- step = size_left
@@ -318,6 +319,7 @@ BEGIN
 		
 		
 		ram_we <= '1';
+		--ram_addr <= group_addr;
         
       END IF;  -- finished case of s_w0
 

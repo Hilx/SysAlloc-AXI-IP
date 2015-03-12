@@ -339,9 +339,13 @@ BEGIN
           ELSE                          -- cmd = 1 malloc
             state            <= malloc0;
             start_tracker    <= '1';
-            tracker_func_sel <= '1';
+            tracker_func_sel <= '1';	 
+		 
           END IF;
         END IF;
+		
+		
+		
       END IF;
 
       IF state = malloc0 THEN
@@ -350,12 +354,14 @@ BEGIN
             state              <= search;
             start_search       <= '1';
             search_start_probe <= tracker_probe_out;
+
           ELSE                                                   -- cblock 
             state                <= malloc1;
             start_check_blocking <= '1';
             cblock_probe_in      <= tracker_probe_out;
           END IF;
-        END IF;
+       END IF;
+
         
       END IF;
 
@@ -387,7 +393,7 @@ BEGIN
       IF state = search THEN
 
         IF search_done_bit = '1' THEN
-          IF flag_malloc_failed = '0' THEN
+          IF flag_malloc_failed = '0' THEN	  
             state                 <= track;
             start_tracker         <= '1';
             tracker_func_sel      <= '0';
@@ -407,7 +413,7 @@ BEGIN
           state       <= downmark;
           start_dmark <= '1';
           IF flag_alloc = '1' THEN      -- malloc
-            dmark_start_probe <= search_done_probe;
+            dmark_start_probe <= search_done_probe;			
           ELSE
             dmark_start_probe <= free_info_probe_out;
           END IF;
@@ -514,7 +520,7 @@ BEGIN
       END IF;
 
       -- address
-      ddr_addr <= slv(usgn(control_addr) - usgn(ParAddr) + usgn(DDR_TREE_BASE));
+      ddr_addr <= slv(((usgn(control_addr) - usgn(ParAddr)) sll 2) + usgn(DDR_TREE_BASE)); --------------- num * 4 + base
 
       IF control_read_start = '1' THEN  -- start, command
         ddr_start   <= '1';

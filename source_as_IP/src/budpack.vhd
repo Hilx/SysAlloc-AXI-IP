@@ -10,7 +10,7 @@ PACKAGE budpack IS
 	constant DDR_BASE : std_logic_vector(31 downto 0) := x"10000000";
 	
 	constant DDR_TREE_BASE :std_logic_vector := x"18000000";
-	constant ParAddr: std_logic_vector := x"00020000";
+	constant ParAddr: std_logic_vector := x"00000000";--x"00020000";
 
   -- total number of memory blocks managed by the allocator
   CONSTANT TOTAL_MEM_BLOCKS : std_logic_vector(31 DOWNTO 0) := std_logic_vector(to_unsigned(8388608, 32));
