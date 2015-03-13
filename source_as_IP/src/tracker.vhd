@@ -27,7 +27,7 @@ ARCHITECTURE synthe_tracker OF tracker IS
   ALIAS slv IS std_logic_vector;
   ALIAS usgn IS unsigned;
 
-  TYPE StateType IS (idle, s0, update, probe_m, done,s_p0,s_p1,s_p,s_read,s_read1,write_wait);
+  TYPE StateType IS (idle, s0, update, probe_m, done, r_wait1, r_wait2, w_wait);
   SIGNAL state, nstate : StateType;
 
   SIGNAL top_node_size     : usgn(31 DOWNTO 0);
@@ -38,10 +38,10 @@ ARCHITECTURE synthe_tracker OF tracker IS
   SIGNAL depth        : integer RANGE 0 TO 31;
   SIGNAL func_sel_i   : std_logic;
   SIGNAL group_addr_i : std_logic_vector(31 DOWNTO 0);
-  signal read_data : std_logic_vector(31 downto 0);
+  SIGNAL read_data    : std_logic_vector(31 DOWNTO 0);
 BEGIN
 
-  p0 : PROCESS(state, start,func_sel)
+  p0 : PROCESS(state, start, func_sel)
   BEGIN
 
     nstate   <= idle;
@@ -51,21 +51,18 @@ BEGIN
       WHEN idle =>
         nstate <= idle;
         IF start = '1' THEN
-          nstate <= s_p;
+          nstate <= s0;
         END IF;
-		when s_p0 => nstate <= s_p1;
-		when s_p1 => nstate <= s_p;
-		when s_p => nstate <= s0;
       WHEN s0      => nstate <= s0;
-	  when s_read => nstate <= s_read1;
-	  when s_read1 => 
-		nstate <= update;
-		if func_sel = '1' then 
-			nstate <= probe_m;
-		end if;
-      WHEN update  => nstate <= write_wait;
-	  when write_wait => nstate <= done;
-      WHEN probe_m => nstate <= done;
+      WHEN r_wait1 => nstate <= r_wait2;
+      WHEN r_wait2 =>
+        nstate <= update;
+        IF func_sel = '1' THEN
+          nstate <= probe_m;
+        END IF;
+      WHEN update     => nstate <= done;
+      WHEN w_wait	  => nstate <= done;
+      WHEN probe_m    => nstate <= done;
       WHEN done =>
         nstate   <= idle;
         done_bit <= '1';
@@ -95,15 +92,13 @@ BEGIN
         log2top_node_size <= usgn(LOG2TMB);
         verti             <= (OTHERS => '0');
         rowbase           <= (OTHERS => '0');
-		
+        
+		group_addr_i <= group_addr_in;
       END IF;
 
-	  if state = s_p0 then 
-		group_addr_i <= group_addr_in;
-      end if;
-	  
-      IF state = s0 THEN 
-	    
+
+
+      IF state = s0 THEN                
 
         IF to_integer(usgn(size)) <= to_integer(top_node_size SRL 4) THEN  -- size <= topsize/16
           state             <= nstate;
@@ -124,25 +119,25 @@ BEGIN
           ELSE                          -- size <= topsize
             local_depth_var := (OTHERS => '0');
           END IF;
-          depth <= to_integer(usgn(LOG2TMB) + local_depth_var - log2top_node_size);
 
-			state <= s_read;
-			
-		END IF;       
-				
+          depth <= to_integer(usgn(LOG2TMB) + local_depth_var - log2top_node_size);
+          state <= r_wait1;          
+        END IF;
+        
       END IF;  -- end s0
 
-	  if state = s_read1 then 
-		read_data <= ram_data_out;
-	  end if;
+      IF state = r_wait2 THEN
+        read_data <= ram_data_out;
+      END IF;
 
       IF state = update THEN
         IF flag_alloc = '1' OR (usgn(read_data) > usgn(group_addr_i)) THEN
           ram_we      <= '1';
           ram_data_in <= group_addr_i;
+		  state <= w_wait;
         END IF;
       END IF;  -- end update
-	  
+
 
       IF state = probe_m THEN
         
@@ -160,7 +155,7 @@ BEGIN
           horiz_var         := usgn(read_data) - rowbase_var;
           probe_out.rowbase <= slv(rowbase);
           probe_out.nodesel <= slv(horiz_var(2 DOWNTO 0));  -- nodesel = horiz % 8             
-          probe_out.saddr   <= x"00005550";--slv(horiz_var SLL to_integer(log2top_node_size));
+          probe_out.saddr   <= slv(horiz_var SLL to_integer(log2top_node_size));
 
           probe_out.alvec <= '0';
           IF to_integer(top_node_size) = 2 THEN

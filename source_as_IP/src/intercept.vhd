@@ -128,7 +128,7 @@ BEGIN
               ddr_command    <= '0';
               ddr_start      <= '1';
               ddr_addr       <= slv(saddr);
-              ddr_write_data <= buddy_malloc_addr;--buddy_size_i;
+              ddr_write_data <= buddy_size_i;
             ELSE                             -- malloc failed
               state  <= done_state;
               result <= (OTHERS => '1');     -- indicating allocation failed
