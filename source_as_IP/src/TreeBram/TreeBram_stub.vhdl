@@ -1,7 +1,7 @@
 -- Copyright 1986-2014 Xilinx, Inc. All Rights Reserved.
 -- --------------------------------------------------------------------------------
 -- Tool Version: Vivado v.2014.3 (win64) Build 1034051 Fri Oct  3 17:14:12 MDT 2014
--- Date        : Thu Mar 12 18:24:43 2015
+-- Date        : Sat Mar 14 16:01:03 2015
 -- Host        : ee-caswk04 running 64-bit Service Pack 1  (build 7601)
 -- Command     : write_vhdl -force -mode synth_stub
 --               c:/users/zx510/vivado_projects/allocator_project/allocatorrb/ip_repo/allocator_1.0/src/TreeBram/TreeBram_stub.vhdl

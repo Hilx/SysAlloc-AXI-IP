@@ -10,15 +10,15 @@ USE work.budpack.ALL;
 
 ENTITY rbuddy_top IS
   PORT(
-    clk         : IN  std_logic;
-    reset       : IN  std_logic;
-    start       : IN  std_logic;
-    cmd         : IN  std_logic;  -- 0 = free, 1 = alloc
-    size        : IN  std_logic_vector(31 DOWNTO 0);
-    free_addr   : IN  std_logic_vector(31 DOWNTO 0);
-    done        : OUT std_logic;
-    malloc_addr : OUT std_logic_vector(31 DOWNTO 0);
-	malloc_failed : out std_logic; -- 1 when failed
+    clk           : IN  std_logic;
+    reset         : IN  std_logic;
+    start         : IN  std_logic;
+    cmd           : IN  std_logic;      -- 0 = free, 1 = alloc
+    size          : IN  std_logic_vector(31 DOWNTO 0);
+    free_addr     : IN  std_logic_vector(31 DOWNTO 0);
+    done          : OUT std_logic;
+    malloc_addr   : OUT std_logic_vector(31 DOWNTO 0);
+    malloc_failed : OUT std_logic;      -- 1 when failed
 
     ddr_command    : OUT std_logic;     -- 0 = write, 1 = read
     ddr_start      : OUT std_logic;
@@ -136,50 +136,53 @@ ARCHITECTURE synth OF rbuddy_top IS
   SIGNAL control_data_out   : std_logic_vector(31 DOWNTO 0);
   SIGNAL control_write_done : std_logic;
   SIGNAL control_read_start : std_logic;
-  SIGNAL control_read_done  : std_logic; 
-  
-  signal tracker_we_wire: std_logic_vector(0 downto 0);
-  signal ram0_we_wire : std_logic_vector(0 downto 0);
-  
-  component TrackerRam IS
-  PORT (
-    clka : IN STD_LOGIC;
-    wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    addra : IN STD_LOGIC_VECTOR(4 DOWNTO 0);
-    dina : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-    douta : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
-  );
-END component;
+  SIGNAL control_read_done  : std_logic;
 
-component TreeBram IS
-  PORT (
-    clka : IN STD_LOGIC;
-    wea : IN STD_LOGIC_VECTOR(0 DOWNTO 0);
-    addra : IN STD_LOGIC_VECTOR(14 DOWNTO 0);
-    dina : IN STD_LOGIC_VECTOR(31 DOWNTO 0);
-    douta : OUT STD_LOGIC_VECTOR(31 DOWNTO 0)
-  );
-END component;
+  SIGNAL tracker_we_wire : std_logic_vector(0 DOWNTO 0);
+  SIGNAL ram0_we_wire    : std_logic_vector(0 DOWNTO 0);
+
+  SIGNAL wait_flag       : std_logic;
+  SIGNAL write_wait_flag : std_logic;
+
+  COMPONENT TrackerRam IS
+    PORT (
+      clka  : IN  std_logic;
+      wea   : IN  std_logic_vector(0 DOWNTO 0);
+      addra : IN  std_logic_vector(4 DOWNTO 0);
+      dina  : IN  std_logic_vector(31 DOWNTO 0);
+      douta : OUT std_logic_vector(31 DOWNTO 0)
+      );
+  END COMPONENT;
+
+  COMPONENT TreeBram IS
+    PORT (
+      clka  : IN  std_logic;
+      wea   : IN  std_logic_vector(0 DOWNTO 0);
+      addra : IN  std_logic_vector(14 DOWNTO 0);
+      dina  : IN  std_logic_vector(31 DOWNTO 0);
+      douta : OUT std_logic_vector(31 DOWNTO 0)
+      );
+  END COMPONENT;
   
 BEGIN
 
   TreeBram_inst : TreeBram
     PORT MAP(
-      clka      => clk,
-      wea       => ram0_we_wire,
-      addra  => ram0_addr(14 downto 0),
+      clka  => clk,
+      wea   => ram0_we_wire,
+      addra => ram0_addr(14 DOWNTO 0),
       dina  => ram0_data_in,
       douta => ram0_data_out
       );
-	  
+
   TrackerRam_inst : TrackerRam
     PORT MAP (
-      clka      => clk,
-      wea       => tracker_we_wire,
-      addra  => slv(to_unsigned(tracker_addr,5)),
+      clka  => clk,
+      wea   => tracker_we_wire,
+      addra => slv(to_unsigned(tracker_addr, 5)),
       dina  => tracker_data_in,
       douta => tracker_data_out
-      );	  
+      );          
 
   Searcher : ENTITY locator
     PORT MAP(
@@ -337,15 +340,25 @@ BEGIN
             state           <= free;
             start_free_info <= '1';
           ELSE                          -- cmd = 1 malloc
-            state            <= malloc0;
-            start_tracker    <= '1';
-            tracker_func_sel <= '1';	 
-		 
+            -- state            <= malloc0;
+            -- start_tracker    <= '1';
+            -- tracker_func_sel <= '1'; 
+
+            -----
+            state                      <= search;
+            start_search               <= '1';
+            search_start_probe.verti   <= (OTHERS => '0');
+            search_start_probe.horiz   <= (OTHERS => '0');
+            search_start_probe.rowbase <= (OTHERS => '0');
+            search_start_probe.nodesel <= (OTHERS => '0');
+            search_start_probe.saddr   <= (OTHERS => '0');
+            search_start_probe.alvec   <= '0';
+            
           END IF;
         END IF;
-		
-		
-		
+        
+        
+        
       END IF;
 
       IF state = malloc0 THEN
@@ -355,12 +368,12 @@ BEGIN
             start_search       <= '1';
             search_start_probe <= tracker_probe_out;
 
-          ELSE                                                   -- cblock 
+          ELSE                          -- cblock 
             state                <= malloc1;
             start_check_blocking <= '1';
             cblock_probe_in      <= tracker_probe_out;
           END IF;
-       END IF;
+        END IF;
 
         
       END IF;
@@ -393,7 +406,7 @@ BEGIN
       IF state = search THEN
 
         IF search_done_bit = '1' THEN
-          IF flag_malloc_failed = '0' THEN	  
+          IF flag_malloc_failed = '0' THEN
             state                 <= track;
             start_tracker         <= '1';
             tracker_func_sel      <= '0';
@@ -413,7 +426,7 @@ BEGIN
           state       <= downmark;
           start_dmark <= '1';
           IF flag_alloc = '1' THEN      -- malloc
-            dmark_start_probe <= search_done_probe;			
+            dmark_start_probe <= search_done_probe;
           ELSE
             dmark_start_probe <= free_info_probe_out;
           END IF;
@@ -438,16 +451,16 @@ BEGIN
     
   END PROCESS;
 
-  p2 : PROCESS 				(state,
-               search0_addr,
-              down0_we, down0_addr, down0_data_in,
-               up0_we, up0_addr, up0_data_in,
-               control_data_out,control_write_done,control_read_done,
-			   down_read_start,
-			   cb_read_start,
-		   search_read_start,
-			   up_read_start,
-               cblock_ram_addr, cblock_ram_data_out)  -- select ram signals
+  p2 : PROCESS (state,
+                search0_addr,
+                down0_we, down0_addr, down0_data_in,
+                up0_we, up0_addr, up0_data_in,
+                control_data_out, control_write_done, control_read_done,
+                down_read_start,
+                cb_read_start,
+                search_read_start,
+                up_read_start,
+                cblock_ram_addr, cblock_ram_data_out)  -- select ram signals
   BEGIN
 
     -- default
@@ -460,16 +473,16 @@ BEGIN
     down_read_done     <= control_read_done;
     control_read_start <= down_read_start;
     --   END IF;
-    
+
     -- to avoid latches
-    cblock_ram_data_out <= (others => '0');
-    search0_data_out <= (others => '0');
-    up0_data_out <= (others => '0');
-    cb_read_done <='0';
-    search_read_done <='0';
-    up_read_done <= '0';
-    up_write_done <= '0';   
-    
+    cblock_ram_data_out <= (OTHERS => '0');
+    search0_data_out    <= (OTHERS => '0');
+    up0_data_out        <= (OTHERS => '0');
+    cb_read_done        <= '0';
+    search_read_done    <= '0';
+    up_read_done        <= '0';
+    up_write_done       <= '0';
+
     IF state = malloc1 THEN
       control_addr        <= cblock_ram_addr;
       cblock_ram_data_out <= control_data_out;
@@ -506,6 +519,11 @@ BEGIN
     ram0_we            <= '0';
     control_write_done <= '0';
 
+    IF reset = '0' OR state = idle THEN
+      wait_flag       <= '0';
+      write_wait_flag <= '0';
+    END IF;
+
     IF to_integer(usgn(control_addr)) >= to_integer(usgn(ParAddr)) THEN  -- use DDR
 
       -- about done bit
@@ -516,48 +534,66 @@ BEGIN
 
         control_read_done <= '1';
         -- for read
-        control_data_out  <= ddr_read_data;               
+        control_data_out  <= ddr_read_data;
       END IF;
 
       -- address
-      ddr_addr <= slv(((usgn(control_addr) - usgn(ParAddr)) sll 2) + usgn(DDR_TREE_BASE)); --------------- num * 4 + base
+      ddr_addr <= slv(((usgn(control_addr) - usgn(ParAddr)) SLL 2) + usgn(DDR_TREE_BASE));  --------------- num * 4 + base
 
       IF control_read_start = '1' THEN  -- start, command
         ddr_start   <= '1';
         ddr_command <= '1';             -- read
 
-      ELSIF control_we = '1' THEN  -- start, command, write_data
+      ELSIF control_we = '1' THEN       -- start, command, write_data
         ddr_start      <= '1';
-        ddr_command    <= '0';              -- write
+        ddr_command    <= '0';          -- write
         ddr_write_data <= control_data_in;
       END IF;
       
     ELSE                                -- use BRAM
-      
-      ram0_addr <= control_addr;
+
+--      ram0_addr <= control_addr;
 
       IF control_read_start = '1' THEN
         
-        control_data_out  <= ram0_data_out;
-        control_read_done <= '1';
+          IF wait_flag = '0' THEN
+            wait_flag <= '1';
+          END IF;
         
       ELSIF control_we = '1' THEN
         
-        ram0_we            <= '1';
-        ram0_data_in       <= control_data_in;
-        control_write_done <= '1';  -- DANGEROUS? IS DATA BEING VALID FOR ENOUGH TIME?                   
+        IF write_wait_flag = '0' THEN
+          write_wait_flag <= '1';
+        END IF;
+
+        ram0_we      <= '1';
+        ram0_data_in <= control_data_in;
+        --    control_write_done <= '1';  -- DANGEROUS? IS DATA BEING VALID FOR ENOUGH TIME?                   
         
-      END IF;      
+      END IF;
       
+    END IF;
+
+    IF wait_flag = '1' THEN
+      wait_flag         <= '0';
+    control_data_out <= ram0_data_out;
+      control_read_done <= '1';
+    END IF;
+
+    IF write_wait_flag = '1' THEN
+      write_wait_flag    <= '0';
+      control_write_done <= '1';  -- DANGEROUS? IS DATA BEING VALID FOR ENOUGH TIME?      
     END IF;
     
   END PROCESS;
 
-  malloc_addr <= search_done_probe.saddr;
-  flag_alloc  <= cmd;
+  malloc_addr   <= search_done_probe.saddr;
+  flag_alloc    <= cmd;
   malloc_failed <= flag_malloc_failed;
-  
-   tracker_we_wire <= (0 => tracker_we, others => '0');
-   ram0_we_wire <= (0 => ram0_we, others => '0');
+
+  tracker_we_wire <= (0 => tracker_we, OTHERS => '0');
+  ram0_we_wire    <= (0 => ram0_we, OTHERS => '0');
+
+  ram0_addr <= control_addr;
 
 END ARCHITECTURE synth;

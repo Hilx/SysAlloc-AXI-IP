@@ -36,7 +36,6 @@ ARCHITECTURE synthe_tracker OF tracker IS
 
   SIGNAL rowbase      : usgn(31 DOWNTO 0);
   SIGNAL depth        : integer RANGE 0 TO 31;
-  SIGNAL func_sel_i   : std_logic;
   SIGNAL group_addr_i : std_logic_vector(31 DOWNTO 0);
   SIGNAL read_data    : std_logic_vector(31 DOWNTO 0);
 BEGIN
@@ -60,9 +59,9 @@ BEGIN
         IF func_sel = '1' THEN
           nstate <= probe_m;
         END IF;
-      WHEN update     => nstate <= done;
-      WHEN w_wait	  => nstate <= done;
-      WHEN probe_m    => nstate <= done;
+      WHEN update  => nstate <= done;
+      WHEN w_wait  => nstate <= done;
+      WHEN probe_m => nstate <= done;
       WHEN done =>
         nstate   <= idle;
         done_bit <= '1';
@@ -92,13 +91,13 @@ BEGIN
         log2top_node_size <= usgn(LOG2TMB);
         verti             <= (OTHERS => '0');
         rowbase           <= (OTHERS => '0');
-        
-		group_addr_i <= group_addr_in;
+
+        group_addr_i <= group_addr_in;
       END IF;
 
 
 
-      IF state = s0 THEN                
+      IF state = s0 THEN
 
         IF to_integer(usgn(size)) <= to_integer(top_node_size SRL 4) THEN  -- size <= topsize/16
           state             <= nstate;
@@ -121,7 +120,7 @@ BEGIN
           END IF;
 
           depth <= to_integer(usgn(LOG2TMB) + local_depth_var - log2top_node_size);
-          state <= r_wait1;          
+          state <= r_wait1;
         END IF;
         
       END IF;  -- end s0
@@ -134,7 +133,7 @@ BEGIN
         IF flag_alloc = '1' OR (usgn(read_data) > usgn(group_addr_i)) THEN
           ram_we      <= '1';
           ram_data_in <= group_addr_i;
-		  state <= w_wait;
+          state       <= w_wait;
         END IF;
       END IF;  -- end update
 

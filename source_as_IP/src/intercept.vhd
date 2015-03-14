@@ -47,7 +47,7 @@ ARCHITECTURE synth_inter OF intercept IS
 
   SIGNAL state, nstate : StateType;
 
-  SIGNAL buddy_size_i,buddy_free_addr_i : slv(31 DOWNTO 0);
+  SIGNAL buddy_size_i, buddy_free_addr_i : slv(31 DOWNTO 0);
   
 
 
@@ -97,21 +97,21 @@ BEGIN
       IF state = idle THEN
         
         IF req_valid = '1' THEN
-          state <= malloc;
-		   buddy_size_i  <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
+          state        <= malloc;
+          buddy_size_i <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
           IF command = '0' THEN
             state <= free;
           END IF;
         END IF;
         
       END IF;
-	  
-	  
-	  IF state = malloc THEN
+
+
+      IF state = malloc THEN
 
         buddy_command <= '1';
         -- size = ceil((req+4)/bsize) = floor((req+4+bsize-1)/bsize)
-       -- buddy_size_i  <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
+        -- buddy_size_i  <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
         buddy_start   <= '1';
       END IF;
 
@@ -121,7 +121,7 @@ BEGIN
 
           IF command = '1' THEN
             IF buddy_malloc_failed = '0' THEN
-              state          <= write_wait;  -- if malloc            
+              state          <= write_wait;         -- if malloc            
               saddr          := (usgn(buddy_malloc_addr) SLL (LOG2BLOCK_SIZE - 2)) + usgn(DDR_BASE);
               result         <= slv(saddr + 4);
               -- write to ddr
@@ -129,17 +129,17 @@ BEGIN
               ddr_start      <= '1';
               ddr_addr       <= slv(saddr);
               ddr_write_data <= buddy_size_i;
-            ELSE                             -- malloc failed
+            ELSE                        -- malloc failed
               state  <= done_state;
-              result <= (OTHERS => '1');     -- indicating allocation failed
+              result <= (OTHERS => '1');  -- indicating allocation failed
             END IF;
           END IF;
 
           IF command = '0' THEN
             state     <= done_state;
             done_free <= '1';
-			--res_valid <= '1';
-			
+            --res_valid <= '1';
+            
           END IF;
 
         END IF;  -- end buddy done
@@ -148,8 +148,8 @@ BEGIN
 
       IF state = write_wait THEN
         IF ddr_done = '1' THEN
-          state     <= done_state;
-		  
+          state <= done_state;
+
           res_valid <= '1';
         END IF;
       END IF;
@@ -163,12 +163,12 @@ BEGIN
 
       IF state = read_wait THEN
         IF ddr_done = '1' THEN
-          state           <= busy;
-          buddy_command   <= '0';
-          buddy_start     <= '1';
-          buddy_size_i    <= ddr_read_data;
+          state             <= busy;
+          buddy_command     <= '0';
+          buddy_start       <= '1';
+          buddy_size_i      <= ddr_read_data;
           buddy_free_addr_i <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE - 2));
-		  result <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE - 2));--------------
+          result            <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE - 2));  --------------
         END IF;
       END IF;
 
@@ -176,6 +176,6 @@ BEGIN
     
   END PROCESS;
 
-  buddy_size <= buddy_size_i;
+  buddy_size      <= buddy_size_i;
   buddy_free_addr <= buddy_free_addr_i;
 END ARCHITECTURE;

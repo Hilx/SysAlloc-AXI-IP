@@ -18,8 +18,8 @@ ENTITY locator IS
     ram_data_out    : IN  std_logic_vector(31 DOWNTO 0);
     flag_failed_out : OUT std_logic;
     vg_addr         : OUT std_logic_vector(31 DOWNTO 0);
-	read_done 		: in std_logic;
-	read_start 		: out std_logic
+    read_done       : IN  std_logic;
+    read_start      : OUT std_logic
     );
 END ENTITY locator;
 
@@ -87,8 +87,8 @@ BEGIN
     IF reset = '0' THEN                 -- active low
       state <= idle;
     ELSE
-      state <= nstate;
-	  read_start <= '0';
+      state      <= nstate;
+      read_start <= '0';
 
       IF state = prep THEN
         search_status <= '0';
@@ -125,15 +125,15 @@ BEGIN
           vg_addr    <= slv(usgn(rowbase_var) + usgn(cur.horiz));
         END IF;
 
-		read_start <= '1';
+        read_start <= '1';
 
       END IF;
 
       IF state = s1 THEN
-		if read_done = '1' then 
-        mtree <= ram_data_out;
-		state <= s2;
-		end if;
+        IF read_done = '1' THEN
+          mtree <= ram_data_out;
+          state <= s2;
+        END IF;
       END IF;
 
       IF state = s2 THEN

@@ -12,13 +12,13 @@ ENTITY up_marker IS
     probe_in     : IN  tree_probe;
     node_in      : IN  std_logic_vector(1 DOWNTO 0);
     done_bit     : OUT std_logic;
-    ram_we       : OUT std_logic; -- write_start
+    ram_we       : OUT std_logic;       -- write_start
     ram_addr     : OUT std_logic_vector(31 DOWNTO 0);
     ram_data_in  : OUT std_logic_vector(31 DOWNTO 0);
     ram_data_out : IN  std_logic_vector(31 DOWNTO 0);
-	read_done : in std_logic;
-	write_done : in std_logic;
-	read_start : out std_logic 
+    read_done    : IN  std_logic;
+    write_done   : IN  std_logic;
+    read_start   : OUT std_logic
     );
 END ENTITY up_marker;
 
@@ -35,8 +35,8 @@ ARCHITECTURE synth_umark OF up_marker IS
   SIGNAL node_propa        : std_logic_vector(1 DOWNTO 0);
   SIGNAL original_top_node : std_logic_vector(1 DOWNTO 0);
   SIGNAL index             : integer RANGE 0 TO 15;
-  
-  signal read_data : std_logic_vector(31 downto 0);
+
+  SIGNAL read_data : std_logic_vector(31 DOWNTO 0);
 BEGIN
 
   p0 : PROCESS(state, start)
@@ -51,14 +51,14 @@ BEGIN
         IF start = '1' THEN
           nstate <= prep;
         END IF;
-      WHEN prep   => nstate <= s0;
-      WHEN s0     => nstate <= read_wait;
-	  when read_wait => nstate <= read_wait;
-      WHEN s_read => nstate <= s_w0;
-      WHEN s_w0   => nstate <= write_wait;
-	  when write_wait => nstate <= write_wait;
-      WHEN s_w1   => nstate <= s0;
-      WHEN done   => nstate <= idle;
+      WHEN prep       => nstate <= s0;
+      WHEN s0         => nstate <= read_wait;
+      WHEN read_wait  => nstate <= read_wait;
+      WHEN s_read     => nstate <= s_w0;
+      WHEN s_w0       => nstate <= write_wait;
+      WHEN write_wait => nstate <= write_wait;
+      WHEN s_w1       => nstate <= s0;
+      WHEN done       => nstate <= idle;
                      done_bit <= '1';
       WHEN OTHERS => NULL;
     END CASE;
@@ -70,9 +70,9 @@ BEGIN
   BEGIN
     WAIT UNTIL clk'event AND clk = '1';
 
-    state <= nstate;
-	read_start <= '0';
-	
+    state      <= nstate;
+    read_start <= '0';
+
     IF reset = '0' THEN                 -- active low
       state <= idle;
     ELSE
@@ -93,20 +93,20 @@ BEGIN
         group_addr  <= slv(usgn(cur.rowbase) + (usgn(cur.horiz) SRL 3));
         -- index = 14 + (input horiz % 8) * 2
         index       <= to_integer((resize(usgn(cur.horiz(2 DOWNTO 0)), 32) SLL 1));
-		
-		read_start <= '1';
+
+        read_start <= '1';
       END IF;  -- finish state = s0
-	  
-	  if state = read_wait then 
-	  
-		if read_done = '1' then 
-			
-			read_data <= ram_data_out;
-			state <= s_read;
-			
-		end if;
-	  
-	  end if;
+
+      IF state = read_wait THEN
+        
+        IF read_done = '1' THEN
+          
+          read_data <= ram_data_out;
+          state     <= s_read;
+          
+        END IF;
+        
+      END IF;
 
       IF state = s_read THEN
         original_top_node <= read_data(1 DOWNTO 0);  -- keep a copy of the original top node
@@ -125,17 +125,17 @@ BEGIN
       IF state = s_w0 THEN
         node_propa  <= utree(1 DOWNTO 0);
         ram_data_in <= utree;
-		
-        ram_we <= '1';		
+
+        ram_we <= '1';
       END IF;
-	  
-	  if state = write_wait then 
-	  
-		if write_done = '1' then 
-			state <= s_w1;
-		end if;
-	  
-	  end if; 
+
+      IF state = write_wait THEN
+        
+        IF write_done = '1' THEN
+          state <= s_w1;
+        END IF;
+        
+      END IF;
 
 
       IF state = s_w1 THEN

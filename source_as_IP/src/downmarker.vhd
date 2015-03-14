@@ -15,13 +15,13 @@ ENTITY down_marker IS
     done_bit     : OUT std_logic;
     node_out     : OUT std_logic_vector(1 DOWNTO 0);
     flag_markup  : OUT std_logic;
-    ram_we       : OUT std_logic; -- write_start
+    ram_we       : OUT std_logic;       -- write_start
     ram_addr     : OUT std_logic_vector(31 DOWNTO 0);
     ram_data_in  : OUT std_logic_vector(31 DOWNTO 0);
     ram_data_out : IN  std_logic_vector(31 DOWNTO 0);
-	read_done : in std_logic;
-	write_done : in std_logic;
-	read_start : out std_logic 
+    read_done    : IN  std_logic;
+    write_done   : IN  std_logic;
+    read_start   : OUT std_logic
     );
 END ENTITY down_marker;
 
@@ -30,7 +30,7 @@ ARCHITECTURE synth_dmark OF down_marker IS
   ALIAS slv IS std_logic_vector;
   ALIAS usgn IS unsigned;
 
-  TYPE StateType IS (idle, prep, s0, s_read, s_mark, s_w0, s_w1, done, store, update, w_wait,read_wait0, write_wait);
+  TYPE StateType IS (idle, prep, s0, s_read, s_mark, s_w0, s_w1, done, store, update, w_wait, read_wait0, write_wait);
   SIGNAL state, nstate : StateType;
 
   SIGNAL top_node_size     : std_logic_vector(31 DOWNTO 0);
@@ -51,9 +51,9 @@ ARCHITECTURE synth_dmark OF down_marker IS
   SIGNAL holder         : holder_array;
   SIGNAL index          : std_logic_vector(5 DOWNTO 0);
   SIGNAL effective_node : std_logic_vector(1 DOWNTO 0);
-  
+
   -- MEMORY ACCESS
-  signal read_data : std_logic_vector(31 downto 0);
+  SIGNAL read_data : std_logic_vector(31 DOWNTO 0);
   
 BEGIN
 
@@ -69,10 +69,10 @@ BEGIN
         IF start = '1' THEN
           nstate <= prep;
         END IF;
-      WHEN prep   => nstate <= s0;
-      WHEN s0     => nstate <= read_wait0;
-	  when read_wait0 => nstate <= read_wait0;
-      WHEN s_read => nstate <= s_mark;
+      WHEN prep       => nstate <= s0;
+      WHEN s0         => nstate <= read_wait0;
+      WHEN read_wait0 => nstate <= read_wait0;
+      WHEN s_read     => nstate <= s_mark;
       WHEN s_mark =>
         
         nstate <= s_w0;
@@ -80,8 +80,8 @@ BEGIN
           nstate <= store;
         END IF;
         
-      WHEN s_w0 => nstate <= write_wait;
-	  when write_wait => nstate <= write_wait;
+      WHEN s_w0       => nstate <= write_wait;
+      WHEN write_wait => nstate <= write_wait;
       WHEN s_w1 =>
         
         IF flag_alloc = '1' THEN        -- when allocating
@@ -91,7 +91,6 @@ BEGIN
           END IF;
         ELSE                            -- when free
           nstate <= update;
-          
         END IF;
         
       WHEN w_wait => nstate <= s0;
@@ -124,10 +123,10 @@ BEGIN
     IF reset = '0' THEN                 -- active low
       state <= idle;
     ELSE
-      state <= nstate;
-	  read_start <= '0';
-      ram_we <= '0';
-	
+      state      <= nstate;
+      read_start <= '0';
+      ram_we     <= '0';
+
       IF state = prep THEN
         cur         <= probe_in;
         size_left   <= reqsize;
@@ -155,19 +154,19 @@ BEGIN
         alvec_sel <= to_integer(resize(usgn(cur.horiz(3 DOWNTO 0)), 5) SLL 1);
 
         offset := (OTHERS => '0');
-		
-		read_start <= '1';
-		--ram_addr <= group_addr;
+
+        read_start <= '1';
+        --ram_addr <= group_addr;
 
       END IF;  -- finished case of s0
-	  
-	  if state = read_wait0 then 
-		if read_done = '1' then 
-			read_data <= ram_data_out;
-			state <= s_read;
-		end if;	  
-	  end if;  
-	  
+
+      IF state = read_wait0 THEN
+        IF read_done = '1' THEN
+          read_data <= ram_data_out;
+          state     <= s_read;
+        END IF;
+      END IF;
+
       IF state = s_read THEN
         mtree <= read_data;
 
@@ -205,7 +204,7 @@ BEGIN
           
           mtree(14 + to_integer(usgn(shift))) <= flag_alloc;
           size_left_var                       := size_left;
-          offset := slv(resize(usgn(shift),offset'length) srl 1);
+          offset                              := slv(resize(usgn(shift) SRL 1, offset'length));
         ELSIF to_integer(usgn(top_node_size)) = 4 THEN  -- topsize = 4
 
           step := slv(resize(usgn(size_left), step'length));  -- step = size_left
@@ -316,26 +315,25 @@ BEGIN
           END IF;
           
         END IF;
-		
-		
-		ram_we <= '1';
-		--ram_addr <= group_addr;
+
+
+        ram_we <= '1';
+        --ram_addr <= group_addr;
         
       END IF;  -- finished case of s_w0
 
-	 IF state = write_wait then 
-	  
-		if write_done = '1' then 
-			state <= s_w1;
-		end if;
-	  
-	  
-	  end if;
+      IF state = write_wait THEN
+        
+        IF write_done = '1' THEN
+          state <= s_w1;
+        END IF;
+        
+      END IF;
 
       IF state = s_w1 THEN
         
 
-        cur    <= gen;
+        cur <= gen;
 
         -- free
         IF flag_alloc = '0' THEN

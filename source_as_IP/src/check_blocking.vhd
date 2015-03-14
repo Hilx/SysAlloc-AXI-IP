@@ -16,8 +16,8 @@ ENTITY check_blocking IS
     -- ram related
     ram_addr          : OUT std_logic_vector(31 DOWNTO 0);
     ram_data_out      : IN  std_logic_vector(31 DOWNTO 0);
-	read_done : in std_logic;
-	read_start : out std_logic
+    read_done         : IN  std_logic;
+    read_start        : OUT std_logic
     );
 END ENTITY check_blocking;
 
@@ -25,13 +25,13 @@ ARCHITECTURE synthe_cblock OF check_blocking IS
 
   ALIAS slv IS std_logic_vector;
   ALIAS usgn IS unsigned;
-  TYPE StateType IS (idle, prep, s0, s1, s2, done,read_wait);
+  TYPE StateType IS (idle, prep, s0, s1, s2, done, read_wait);
   SIGNAL state, nstate     : StateType;
   SIGNAL cur, gen          : tree_probe;
   SIGNAL group_addr        : usgn(31 DOWNTO 0);
   SIGNAL log2top_node_size : usgn(6 DOWNTO 0);
   SIGNAL flag_blocking     : std_logic;
-  signal data_read : std_logic_vector(31 downto 0);
+  SIGNAL data_read         : std_logic_vector(31 DOWNTO 0);
 
 BEGIN
 
@@ -47,11 +47,11 @@ BEGIN
         IF start = '1' THEN
           nstate <= prep;
         END IF;
-      WHEN prep => nstate <= s0;
-      WHEN s0   => nstate <= read_wait;
-	  when read_wait => nstate <= read_wait;
-      WHEN s1   => nstate <= s2;
-      WHEN s2   => nstate <= s0;
+      WHEN prep      => nstate <= s0;
+      WHEN s0        => nstate <= read_wait;
+      WHEN read_wait => nstate <= read_wait;
+      WHEN s1        => nstate <= s2;
+      WHEN s2        => nstate <= s0;
       WHEN done =>
         nstate   <= idle;
         done_bit <= '1';
@@ -66,8 +66,8 @@ BEGIN
   BEGIN
     WAIT UNTIL clk'event AND clk = '1';
 
-    state <= nstate;
-	read_start <= '0';
+    state      <= nstate;
+    read_start <= '0';
 
     IF reset = '0' THEN                 -- active low
       state <= idle;
@@ -92,21 +92,18 @@ BEGIN
         rowbase_var       := slv(usgn(cur.rowbase) - (to_unsigned(1, rowbase_var'length) SLL (to_integer(3*(usgn(cur.verti))))));
         gen.rowbase       <= rowbase_var;
         group_addr        <= usgn(rowbase_var) + usgn(cur.horiz);
-		
-		read_start <= '1';
+
+        read_start <= '1';
         
       END IF;  -- end s0
 
-	  if state = read_wait then 
-	  
-		if read_done = '1' then 
-			data_read <= ram_data_out;
-			state <= s1;
-		end if;
-		
-	  
-	  end if;
-	  
+      IF state = read_wait THEN
+        IF read_done = '1' THEN
+          data_read <= ram_data_out;
+          state     <= s1;
+        END IF;
+      END IF;
+
       IF state = s1 THEN                -- check bits & compute gen 
         
         gen.alvec <= cur.alvec;
