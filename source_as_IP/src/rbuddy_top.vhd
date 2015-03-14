@@ -340,20 +340,9 @@ BEGIN
             state           <= free;
             start_free_info <= '1';
           ELSE                          -- cmd = 1 malloc
-            -- state            <= malloc0;
-            -- start_tracker    <= '1';
-            -- tracker_func_sel <= '1'; 
-
-            -----
-            state                      <= search;
-            start_search               <= '1';
-            search_start_probe.verti   <= (OTHERS => '0');
-            search_start_probe.horiz   <= (OTHERS => '0');
-            search_start_probe.rowbase <= (OTHERS => '0');
-            search_start_probe.nodesel <= (OTHERS => '0');
-            search_start_probe.saddr   <= (OTHERS => '0');
-            search_start_probe.alvec   <= '0';
-            
+             state            <= malloc0;
+             start_tracker    <= '1';
+             tracker_func_sel <= '1'; 
           END IF;
         END IF;
         
