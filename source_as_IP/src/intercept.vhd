@@ -122,7 +122,7 @@ BEGIN
           IF command = '1' THEN
             IF buddy_malloc_failed = '0' THEN
               state          <= write_wait;         -- if malloc            
-              saddr          := (usgn(buddy_malloc_addr) SLL LOG2BLOCK_SIZE) + usgn(DDR_BASE);
+              saddr          := (usgn(buddy_malloc_addr) SLL (LOG2BLOCK_SIZE)) + usgn(DDR_BASE);
               result         <= slv(saddr + 4);
               -- write to ddr
               ddr_command    <= '0';
@@ -167,8 +167,8 @@ BEGIN
           buddy_command     <= '0';
           buddy_start       <= '1';
           buddy_size_i      <= ddr_read_data;
-          buddy_free_addr_i <= slv((saddr - usgn(DDR_BASE)) SRL LOG2BLOCK_SIZE);
-          result            <= slv((saddr - usgn(DDR_BASE)) SRL LOG2BLOCK_SIZE);  --------------
+          buddy_free_addr_i <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE));
+          result            <= slv((saddr - usgn(DDR_BASE)) SRL (LOG2BLOCK_SIZE));  --------------
         END IF;
       END IF;
 
