@@ -158,7 +158,7 @@ ARCHITECTURE synth OF rbuddy_top IS
     PORT (
       clka  : IN  std_logic;
       wea   : IN  std_logic_vector(0 DOWNTO 0);
-      addra : IN  std_logic_vector(14 DOWNTO 0);
+      addra : IN  std_logic_vector(31 DOWNTO 0);
       dina  : IN  std_logic_vector(31 DOWNTO 0);
       douta : OUT std_logic_vector(31 DOWNTO 0)
       );
@@ -170,7 +170,7 @@ BEGIN
     PORT MAP(
       clka  => clk,
       wea   => ram0_we_wire,
-      addra => ram0_addr(14 DOWNTO 0),
+      addra => ram0_addr(31 DOWNTO 0),
       dina  => ram0_data_in,
       douta => ram0_data_out
       );
@@ -340,19 +340,10 @@ BEGIN
             state           <= free;
             start_free_info <= '1';
           ELSE                          -- cmd = 1 malloc
-            -- state            <= malloc0;
-            -- start_tracker    <= '1';
-            -- tracker_func_sel <= '1'; 
+            state            <= malloc0;
+            start_tracker    <= '1';
+            tracker_func_sel <= '1'; 
 
-            -----
-            state                      <= search;
-            start_search               <= '1';
-            search_start_probe.verti   <= (OTHERS => '0');
-            search_start_probe.horiz   <= (OTHERS => '0');
-            search_start_probe.rowbase <= (OTHERS => '0');
-            search_start_probe.nodesel <= (OTHERS => '0');
-            search_start_probe.saddr   <= (OTHERS => '0');
-            search_start_probe.alvec   <= '0';
             
           END IF;
         END IF;

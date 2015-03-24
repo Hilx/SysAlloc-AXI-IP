@@ -112,7 +112,7 @@ BEGIN
     IF state = s_w THEN
       IF(endoffile = '0') THEN
         
-        IF command = '0' THEN           -- allotcation
+        IF command = '1' THEN           -- allotcation
           write(outline, data(reqcount).req_index);
           write(outline, string'(" saddr =  "));
           out_int := to_integer(usgn(saddr));

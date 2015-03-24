@@ -118,7 +118,7 @@ BEGIN
           alvec     <= '1';
           alvec_var := '1';
         ELSIF to_integer(top_node_size) = 4 THEN
-          nodesel <= resize(usgn(address(1 DOWNTO 0)) SLL 1, nodesel'length);
+          nodesel <= resize(usgn(address(1 DOWNTO 0)), nodesel'length)  SLL 1;
         END IF;
 
         rowbase_var := rowbase + (to_unsigned(1, rowbase'length) SLL (to_integer(3 * (verti - 1))));
