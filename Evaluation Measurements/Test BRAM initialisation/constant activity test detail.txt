@@ -1,0 +1,2 @@
+allocation/free size = 200 bytes
+delay time = 1 cycle
