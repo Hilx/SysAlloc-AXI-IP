@@ -95,6 +95,9 @@ ARCHITECTURE arch_imp OF Allocator_v1_0 IS
       result    : IN  std_logic_vector(31 DOWNTO 0);
       res_valid : IN  std_logic;
       done_free : IN  std_logic;
+	  
+	  write_counter,write_counter2 : in std_logic_vector(31 downto 0);
+	  counter_interc : in integer;
 
       S_AXI_ACLK    : IN  std_logic;
       S_AXI_ARESETN : IN  std_logic;
@@ -183,6 +186,9 @@ ARCHITECTURE arch_imp OF Allocator_v1_0 IS
       buddy_done          : IN  std_logic;
       buddy_malloc_addr   : IN  std_logic_vector(31 DOWNTO 0);
       buddy_malloc_failed : IN  std_logic;
+	  
+	  	write_counter_out : out integer;
+	  
       -- ddr
       ddr_command         : OUT std_logic;  -- 0 = write, 1 = read
       ddr_start           : OUT std_logic;
@@ -205,6 +211,9 @@ ARCHITECTURE arch_imp OF Allocator_v1_0 IS
       done                : OUT std_logic;
       malloc_addr         : OUT std_logic_vector(31 DOWNTO 0);
       malloc_failed : OUT std_logic;
+	  
+	  counter_out,counter_out2 : out std_logic_vector(31 downto 0);
+	  
       -- DDR
       ddr_command         : OUT std_logic;  -- 0 = write, 1 = read
       ddr_start           : OUT std_logic;
@@ -257,6 +266,10 @@ ARCHITECTURE arch_imp OF Allocator_v1_0 IS
   SIGNAL interc_ddr_done       : std_logic;
 
     signal ddr_sel : std_logic;
+    
+    signal write_counter : integer;
+	
+	signal buddy_counter_out,buddy_counter_out2 : std_logic_vector(31 downto 0);
   
 BEGIN
 
@@ -273,6 +286,10 @@ BEGIN
       result    => rproc_result,
       res_valid => rproc_res_valid,
       done_free => rproc_done_free,
+	  
+	  write_counter => buddy_counter_out,
+	  write_counter2 => buddy_counter_out2,
+	  counter_interc => write_counter,
 
       S_AXI_ACLK    => s00_axi_aclk,
       S_AXI_ARESETN => s00_axi_aresetn,
@@ -342,6 +359,9 @@ BEGIN
 
   INTERC : intercept 
     PORT MAP(
+	
+		write_counter_out => write_counter,
+	
       clk                 => s00_axi_aclk,
       reset               => s00_axi_aresetn,
       ddr_sel             => ddr_sel,
@@ -371,6 +391,9 @@ BEGIN
 
   buddy : rbuddy_top 
     PORT map (
+		counter_out => buddy_counter_out,
+		counter_out2 => buddy_counter_out2,
+	
       clk                 => s00_axi_aclk,
       reset               => s00_axi_aresetn,
       -- request processor

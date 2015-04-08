@@ -101,7 +101,7 @@ END Allocator_v1_0_M00_AXI;
 ARCHITECTURE implementation OF Allocator_v1_0_M00_AXI IS
 
   -- My signals
-  signal done_bit_i : std_logic;
+  SIGNAL done_bit_i : std_logic;
 
   -- function called clogb2 that returns an integer which has the
   -- value of the ceiling of the log base 2
@@ -430,7 +430,7 @@ BEGIN
         error              <= '0';
       ELSE
 
-		done_bit_i <= '0';
+        done_bit_i <= '0';
         -- state transition                                                                         
         CASE (mst_exec_state) IS
           
@@ -448,13 +448,13 @@ BEGIN
 
               IF command = '0' THEN     -- write 
                 mst_exec_state <= INIT_WRITE;
-				axi_awaddr <= ddr_addr;
-				axi_wdata <= write_data;
+                axi_awaddr     <= ddr_addr;
+                axi_wdata      <= write_data;
               END IF;
 
               IF command = '1' THEN     -- read 
                 mst_exec_state <= INIT_READ;
-				axi_araddr <= ddr_addr;
+                axi_araddr     <= ddr_addr;
               END IF;
               
             END IF;
@@ -487,7 +487,7 @@ BEGIN
             -- issued until last_read signal is asserted.                                           
             -- read controller                                                                      
             IF (reads_done = '1') THEN
-            -- 
+              -- 
               mst_exec_state <= DONE;
 
 
@@ -507,9 +507,9 @@ BEGIN
           WHEN DONE =>
 
             mst_exec_state <= IDLE;
-			done_bit_i       <= '1';
+            done_bit_i     <= '1';
             write_issued   <= '0';
-            read_issued    <= '0';          
+            read_issued    <= '0';
 
           WHEN OTHERS =>
             mst_exec_state <= IDLE;
@@ -532,7 +532,7 @@ BEGIN
           writes_done <= '1';
 
         END IF;
-		
+        
       END IF;
     END IF;
   END PROCESS;
@@ -548,16 +548,16 @@ BEGIN
           --The reads_done should be associated with a read ready response                          
           reads_done <= '1';
         END IF;
-		
-		if (M_AXI_RVALID = '1') then 
-			read_data      <= M_AXI_RDATA;
-		end if;
+
+        IF (M_AXI_RVALID = '1') THEN
+          read_data <= M_AXI_RDATA;
+        END IF;
       END IF;
     END IF;
   END PROCESS;
 
   -- Add user logic here
-	done_bit <= done_bit_i;
+  done_bit <= done_bit_i;
   -- User logic ends
 
 END implementation;

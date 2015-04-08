@@ -22,6 +22,9 @@ ENTITY Allocator_v1_0_S00_AXI IS
     result    : IN  std_logic_vector(31 DOWNTO 0);
     res_valid : IN  std_logic;
     done_free : IN  std_logic;
+	
+	write_counter,write_counter2 : in std_logic_vector(31 downto 0);
+	counter_interc : in integer;
 
     -- User ports ends
     -- Do not modify the ports beyond this line
@@ -119,12 +122,18 @@ ARCHITECTURE arch_imp OF Allocator_v1_0_S00_AXI IS
   SIGNAL slv_reg2            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 DOWNTO 0);  -- result
   SIGNAL slv_reg3            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 DOWNTO 0);  -- request malloc
   SIGNAL slv_reg4            : std_logic_vector(C_S_AXI_DATA_WIDTH-1 DOWNTO 0);  -- request free
+  -- -- -- --
+  signal slv_reg5,slv_reg6,slv_reg7 : std_logic_vector(31 downto 0);
+  -- -- -- --
   SIGNAL slv_reg_rden        : std_logic;
   SIGNAL slv_reg_wren        : std_logic;
   SIGNAL reg_data_out        : std_logic_vector(C_S_AXI_DATA_WIDTH-1 DOWNTO 0);
   SIGNAL byte_index          : integer;
 
   SIGNAL req_valid_i : std_logic;
+  
+  -- performance evaluation
+  signal counter : integer;
 
 BEGIN
   -- I/O Connections assignments
@@ -256,6 +265,22 @@ BEGIN
       END IF;
     END IF;
   END PROCESS;
+  
+  -- evaluation 
+  process(S_AXI_ACLK)
+  begin
+  
+  IF rising_edge(S_AXI_ACLK) THEN
+  
+    counter <= counter + 1;
+    
+    if req_valid_i = '1' then 
+        counter <= 0;
+    end if;
+    
+  end if;
+  
+  end process;
 
   -- Implement write response logic generation
   -- The write response and response valid signals are asserted by the slave 
@@ -354,7 +379,13 @@ BEGIN
       WHEN b"011" =>
         reg_data_out <= slv_reg3;
       WHEN b"100" =>
-        reg_data_out <= slv_reg3;
+        reg_data_out <= slv_reg4; -- slv_reg3
+      when b"101" =>
+        reg_data_out <= slv_reg5;
+			when b"110" =>
+			reg_data_out <= slv_reg6;
+			when b"111" =>
+			reg_data_out <= slv_reg7;
       WHEN OTHERS =>
         reg_data_out <= (OTHERS => '0');
     END CASE;
@@ -399,6 +430,9 @@ BEGIN
         IF res_valid = '1' OR done_free = '1' THEN
           slv_reg1(0) <= '1';
           slv_reg2    <= result;
+          slv_reg5 <= write_counter; --std_logic_vector(to_unsigned(counter, 32));
+		  slv_reg6 <= write_counter2;
+		  slv_reg7 <= std_logic_vector(to_unsigned(counter_interc,32));
         END IF;
         
       END IF;

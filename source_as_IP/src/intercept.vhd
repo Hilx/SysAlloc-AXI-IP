@@ -16,6 +16,8 @@ ENTITY intercept IS
     result              : OUT std_logic_vector(31 DOWNTO 0);
     res_valid           : OUT std_logic;
     done_free           : OUT std_logic;
+    
+   
     -- buddy
     buddy_start         : OUT std_logic;
     buddy_command       : OUT std_logic;
@@ -24,6 +26,9 @@ ENTITY intercept IS
     buddy_done          : IN  std_logic;
     buddy_malloc_addr   : IN  std_logic_vector(31 DOWNTO 0);
     buddy_malloc_failed : IN  std_logic;
+	
+	write_counter_out : out integer;
+	
     -- ddr
     ddr_command         : OUT std_logic;  -- 0 = write, 1 = read
     ddr_start           : OUT std_logic;
@@ -49,7 +54,7 @@ ARCHITECTURE synth_inter OF intercept IS
 
   SIGNAL buddy_size_i, buddy_free_addr_i : slv(31 DOWNTO 0);
   
-
+	signal write_counter : integer;
 
 BEGIN
 
@@ -80,7 +85,7 @@ BEGIN
     VARIABLE saddr : usgn(31 DOWNTO 0);
   BEGIN
     WAIT UNTIL clk'event AND clk = '1';
-
+	write_counter <= write_counter + 1;
     state       <= nstate;
     buddy_start <= '0';
     done_free   <= '0';
@@ -90,6 +95,8 @@ BEGIN
     IF reset = '0' THEN                 -- active low
       state        <= idle;
       buddy_size_i <= (OTHERS => '0');
+	  
+	  write_counter <= 0;
     ELSE
 
 
@@ -97,6 +104,9 @@ BEGIN
       IF state = idle THEN
         
         IF req_valid = '1' THEN
+		
+		write_counter <= 0;
+		
           state        <= malloc;
           buddy_size_i <= slv((usgn(request) + 3 + usgn(BLOCK_SIZE)) SRL LOG2BLOCK_SIZE);
           IF command = '0' THEN
@@ -121,6 +131,9 @@ BEGIN
 
           IF command = '1' THEN
             IF buddy_malloc_failed = '0' THEN
+			  -- performance
+				
+			  --
               state          <= write_wait;         -- if malloc            
               saddr          := (usgn(buddy_malloc_addr) SLL (LOG2BLOCK_SIZE)) + usgn(DDR_BASE);
               result         <= slv(saddr + 4);
@@ -148,8 +161,10 @@ BEGIN
 
       IF state = write_wait THEN
         IF ddr_done = '1' THEN
+		-- performance
+			write_counter_out <= write_counter;
+		--		 
           state <= done_state;
-
           res_valid <= '1';
         END IF;
       END IF;

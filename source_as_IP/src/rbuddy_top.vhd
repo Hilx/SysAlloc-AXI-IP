@@ -19,6 +19,9 @@ ENTITY rbuddy_top IS
     done          : OUT std_logic;
     malloc_addr   : OUT std_logic_vector(31 DOWNTO 0);
     malloc_failed : OUT std_logic;      -- 1 when failed
+	
+	counter_out,counter_out2 :out std_logic_vector(31 downto 0);
+
 
     ddr_command    : OUT std_logic;     -- 0 = write, 1 = read
     ddr_start      : OUT std_logic;
@@ -143,6 +146,16 @@ ARCHITECTURE synth OF rbuddy_top IS
 
   SIGNAL wait_flag       : std_logic;
   SIGNAL write_wait_flag : std_logic;
+  
+  SIGNAL counter_search : integer;
+  SIGNAL counter_down : integer;
+  SIGNAL counter_up : integer;
+  
+  SIGNAL counter_malloc0 : integer;
+  SIGNAL counter_malloc1 : integer;
+  SIGNAL counter_track : integer;
+  
+  signal counter_latency : integer;
 
   COMPONENT TrackerRam IS
     PORT (
@@ -334,8 +347,21 @@ BEGIN
       state <= idle;
     ELSE
 
+	counter_latency <= counter_latency + 1;
       IF state = idle THEN
+	  
+	  counter_latency <= counter_latency;
+	  
         IF start = '1' THEN
+		
+				  counter_search <= 0;
+				  counter_down <= 0;
+				  counter_up <= 0;
+				  counter_malloc0 <= 0;
+				  counter_malloc1 <= 0;
+				  counter_track <= 0;
+					counter_latency	<= 0;			  
+		
           IF cmd = '0' THEN             -- cmd = 0 free
             state           <= free;
             start_free_info <= '1';
@@ -344,6 +370,8 @@ BEGIN
              start_tracker    <= '1';
              tracker_func_sel <= '1'; 
           END IF;
+		  
+
         END IF;
         
         
@@ -351,6 +379,10 @@ BEGIN
       END IF;
 
       IF state = malloc0 THEN
+	  
+	  counter_malloc0 <= counter_malloc0 +1;
+	  
+	  
         IF tracker_done = '1' THEN
           IF to_integer(usgn(tracker_probe_out.verti)) = 0 THEN  -- skip cblock
             state              <= search;
@@ -368,6 +400,9 @@ BEGIN
       END IF;
 
       IF state = malloc1 THEN
+	  
+	  counter_malloc1 <= counter_malloc1 + 1;
+	  
         IF cblock_done = '1' THEN
           state        <= search;
           start_search <= '1';
@@ -393,6 +428,8 @@ BEGIN
       END IF;  -- end free       
 
       IF state = search THEN
+	  
+	  counter_search <= counter_search + 1;
 
         IF search_done_bit = '1' THEN
           IF flag_malloc_failed = '0' THEN
@@ -410,6 +447,8 @@ BEGIN
       END IF;  -- end search     
 
       IF state = track THEN
+	  
+	  counter_track <= counter_track + 1;
 
         IF tracker_done = '1' THEN
           state       <= downmark;
@@ -423,6 +462,9 @@ BEGIN
       END IF;  -- end track      
 
       IF state = downmark THEN
+	  
+	  counter_down <= counter_down + 1;
+	  
         IF dmark_done_bit = '1' THEN
           state <= done_state;
           IF flag_markup = '1' THEN
@@ -434,7 +476,11 @@ BEGIN
             END IF;
           END IF;
         END IF;
-      END IF;  -- end downmark           
+      END IF;  -- end downmark  
+
+		if state = upmark then 
+			counter_up <= counter_up + 1;
+		end if;
       
     END IF;  -- end reset
     
@@ -584,5 +630,16 @@ BEGIN
   ram0_we_wire    <= (0 => ram0_we, OTHERS => '0');
 
   ram0_addr <= control_addr;
+  
+  counter_out(7 downto 0) <= slv(to_unsigned(counter_search,8));
+  counter_out(15 downto 8) <= slv(to_unsigned(counter_down,8));
+  counter_out(23 downto 16) <= slv(to_unsigned(counter_up,8));
+  counter_out(31 downto 24) <= slv(to_unsigned(counter_malloc0,8));
+  
+  counter_out2(7 downto 0) <= slv(to_unsigned(counter_malloc1,8));
+  counter_out2(15 downto 8) <= slv(to_unsigned(counter_track,8));
+  counter_out2(31 downto 16) <= slv(to_unsigned(counter_latency,16));
+
+
 
 END ARCHITECTURE synth;
